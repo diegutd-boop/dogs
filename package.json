@@ -1,0 +1,8 @@
+{
+  "name": "dogs",
+  "version": "1.0.0",
+  "description": "dogs: a black and red game site with logins",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "engines": { "node": ">=18" }
+}

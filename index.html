@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>dogs</title>
+<style>
+:root{--bg:#000;--panel:#120506;--red:#e50914;--red2:#ff3b3b;--text:#f5eaea;--mute:#a88;--line:#3a0d10}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:Georgia,"Times New Roman",serif}
+body{min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:24px 16px}
+h1,h2{margin:0;letter-spacing:.02em}
+button,input{font:inherit}
+.hidden{display:none!important}
+.card{width:100%;max-width:380px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:24px;box-shadow:0 0 40px rgba(229,9,20,.18)}
+#dogBox{width:150px;height:150px;margin:0 auto 14px;border-radius:50%;border:3px solid var(--red);display:flex;align-items:center;justify-content:center;overflow:hidden;background:#000;font-size:84px;line-height:1}
+#dogBox img{width:100%;height:100%;object-fit:cover;display:block}
+#login{margin-top:4vh;text-align:center}
+#login h1{font-size:2rem;color:var(--red)}
+#login p.sub{color:var(--mute);margin:6px 0 18px}
+input{width:100%;padding:12px;margin-bottom:10px;background:#000;color:var(--text);border:1px solid var(--line);border-radius:8px}
+input:focus,button:focus-visible{outline:2px solid var(--red2);outline-offset:2px}
+.btn{width:100%;padding:12px;background:var(--red);color:#fff;border:0;border-radius:8px;font-weight:bold;cursor:pointer}
+.btn:hover{background:var(--red2)}
+.link{background:none;border:0;color:var(--red2);cursor:pointer;margin-top:12px;text-decoration:underline}
+#msg{min-height:1.3em;color:var(--red2);margin-top:8px;font-size:.95rem}
+header{width:100%;max-width:640px;display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+header h1{color:var(--red);font-size:1.5rem}
+.ghost{background:none;border:1px solid var(--red);color:var(--red2);border-radius:8px;padding:8px 14px;cursor:pointer}
+.ghost:hover{background:var(--red);color:#fff}
+.tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;justify-content:center}
+.tabs .ghost.on{background:var(--red);color:#fff}
+#app{width:100%;max-width:900px;text-align:center}
+.frame{width:100%;height:min(72vh,560px);background:#000;border:2px solid var(--red);border-radius:8px;display:block}
+.fs{max-width:200px;margin-top:12px}
+.stage{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px}
+.score{color:var(--mute);margin:0 0 10px}
+canvas{max-width:100%;background:#000;border:2px solid var(--red);border-radius:8px;touch-action:none}
+.ttt{display:grid;grid-template-columns:repeat(3,92px);gap:8px;justify-content:center;margin:10px 0}
+.ttt button{height:92px;font-size:2.4rem;background:#000;color:var(--red2);border:1px solid var(--red);border-radius:8px;cursor:pointer}
+.holes{display:grid;grid-template-columns:repeat(3,88px);gap:10px;justify-content:center;margin:10px 0}
+.holes button{height:88px;font-size:2.8rem;background:#000;border:1px solid var(--line);border-radius:50%;cursor:pointer}
+.pad{display:grid;grid-template-columns:repeat(3,56px);gap:6px;justify-content:center;margin-top:10px}
+.pad button{height:48px;background:#000;color:var(--red2);border:1px solid var(--red);border-radius:8px;font-size:1.2rem;cursor:pointer}
+@media (prefers-reduced-motion:no-preference){#dogBox img{animation:pop .5s}@keyframes pop{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:none}}}
+</style>
+</head>
+<body>
+
+<section id="login" class="card">
+  <div id="dogBox" aria-label="Dog">🐶</div>
+  <h1>dogs</h1>
+  <p class="sub" id="sub">Log in to play.</p>
+  <input id="user" placeholder="Username" autocomplete="username" maxlength="24">
+  <input id="pass" type="password" placeholder="Password" autocomplete="current-password" maxlength="64">
+  <button class="btn" id="go">Log in</button>
+  <div id="msg" role="alert"></div>
+  <button class="link" id="swap">New here? Create an account</button>
+</section>
+
+<section id="app" class="hidden">
+  <header>
+    <h1>🐾 dogs</h1>
+    <div><span id="who" style="color:var(--mute);margin-right:10px"></span><button class="ghost" id="out">Log out</button></div>
+  </header>
+  <div class="tabs">
+    <button class="ghost on" data-g="snake">Snake</button>
+    <button class="ghost" data-g="ttt">Tic-Tac-Toe</button>
+    <button class="ghost" data-g="whack">Whack-a-Dog</button>
+    <button class="ghost" data-g="raft">Raft</button>
+    <button class="ghost" data-g="deadplate">Dead Plate</button>
+  </div>
+  <div class="stage" id="stage"></div>
+</section>
+
+<script>
+const $=id=>document.getElementById(id);
+let mode='login',dogTimer=null,timers=[];
+
+/* ---------- dog intro: emoji, then real dog photos ---------- */
+async function dogs(){
+  try{
+    const r=await fetch('https://dog.ceo/api/breeds/image/random/6');
+    const d=await r.json();
+    const urls=d.message||[];
+    if(!urls.length)return;
+    let i=0;
+    const show=()=>{const img=new Image();img.alt='A random dog';img.onload=()=>{$('dogBox').replaceChildren(img)};img.src=urls[i++%urls.length]};
+    show();
+    dogTimer=setInterval(show,4000);
+  }catch(e){/* keep the emoji */}
+}
+setTimeout(dogs,3000);
+
+/* ---------- auth (talks to server.js) ---------- */
+async function api(path,body){
+  try{
+    const r=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body||{})});
+    const d=await r.json().catch(()=>({}));
+    return {ok:r.ok,...d};
+  }catch(e){return {ok:false,error:'Can’t reach the server. Try again.'}}
+}
+$('swap').onclick=()=>{
+  mode=mode==='login'?'signup':'login';
+  $('go').textContent=mode==='login'?'Log in':'Create account';
+  $('sub').textContent=mode==='login'?'Log in to play.':'Pick a username and password.';
+  $('swap').textContent=mode==='login'?'New here? Create an account':'Have an account? Log in';
+  $('msg').textContent='';
+};
+$('go').onclick=async()=>{
+  const u=$('user').value.trim().toLowerCase(),p=$('pass').value;
+  if(!/^[a-z0-9_]{3,24}$/.test(u))return $('msg').textContent='Username: 3–24 letters, numbers or underscores.';
+  if(p.length<6)return $('msg').textContent='Password needs at least 6 characters.';
+  $('go').disabled=true;
+  const r=await api(mode==='login'?'/api/login':'/api/signup',{username:u,password:p});
+  $('go').disabled=false;
+  if(!r.ok)return $('msg').textContent=r.error||'Something went wrong. Try again.';
+  enter(r.username);
+};
+$('pass').addEventListener('keydown',e=>{if(e.key==='Enter')$('go').click()});
+$('out').onclick=async()=>{
+  await api('/api/logout');
+  stopAll();$('app').classList.add('hidden');$('login').classList.remove('hidden');$('pass').value='';
+};
+function enter(u){
+  $('login').classList.add('hidden');$('app').classList.remove('hidden');
+  $('who').textContent=u;$('msg').textContent='';play('snake');
+}
+fetch('/api/me').then(r=>r.ok?r.json():null).then(d=>{if(d&&d.username)enter(d.username)}).catch(()=>{});
+
+/* ---------- games ---------- */
+document.querySelectorAll('.tabs .ghost').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.tabs .ghost').forEach(x=>x.classList.toggle('on',x===b));
+  play(b.dataset.g);
+});
+function stopAll(){timers.forEach(t=>{clearInterval(t);clearTimeout(t)});timers=[];document.onkeydown=null}
+function play(g){stopAll();({snake,ttt,whack,raft,deadplate})[g]()}
+
+/* ---------- embedded games (served by server.js from /games, login required) ---------- */
+function embed(src,title,note){
+  $('stage').innerHTML='<p class="score">'+note+'</p><iframe class="frame" id="gf" title="'+title+'" allow="fullscreen; autoplay; gamepad" src="'+src+'"></iframe><button class="btn fs" id="fs">Fullscreen</button>';
+  $('fs').onclick=()=>{const f=$('gf');(f.requestFullscreen||f.webkitRequestFullscreen||(()=>{})).call(f)};
+}
+function raft(){embed('/games/raft/','Raft','Raft downloads about 90 MB the first time, so it takes a while to load.')}
+function deadplate(){embed('/games/dead-plate/','Dead Plate','Click the game once to give it keyboard focus.')}
+
+function snake(){
+  const N=20,S=18;
+  $('stage').innerHTML='<p class="score">Score: <b id="sc">0</b> · Arrow keys or buttons</p><canvas id="cv" width="360" height="360"></canvas><div class="pad"><span></span><button data-d="U">▲</button><span></span><button data-d="L">◀</button><button data-d="D">▼</button><button data-d="R">▶</button></div><p><button class="btn" id="rs" style="max-width:200px">Restart</button></p>';
+  const c=$('cv').getContext('2d');
+  let s,dir,nd,food,score,over;
+  const rnd=()=>Math.floor(Math.random()*N);
+  const place=()=>{do{food={x:rnd(),y:rnd()}}while(s.some(p=>p.x===food.x&&p.y===food.y))};
+  function reset(){s=[{x:10,y:10},{x:9,y:10},{x:8,y:10}];dir=nd={x:1,y:0};score=0;over=false;$('sc').textContent=0;place()}
+  const set=k=>{const m={U:[0,-1],D:[0,1],L:[-1,0],R:[1,0]}[k];if(m&&!(m[0]===-dir.x&&m[1]===-dir.y))nd={x:m[0],y:m[1]}};
+  document.onkeydown=e=>{const m={ArrowUp:'U',ArrowDown:'D',ArrowLeft:'L',ArrowRight:'R'}[e.key];if(m){e.preventDefault();set(m)}};
+  document.querySelectorAll('.pad button').forEach(b=>b.onclick=()=>set(b.dataset.d));
+  $('rs').onclick=reset;
+  function draw(){
+    c.fillStyle='#000';c.fillRect(0,0,360,360);
+    c.font='16px serif';c.textBaseline='top';c.fillText('🦴',food.x*S,food.y*S);
+    s.forEach((p,i)=>{c.fillStyle=i?'#b00812':'#ff3b3b';c.fillRect(p.x*S+1,p.y*S+1,S-2,S-2)});
+    if(over){c.fillStyle='rgba(0,0,0,.7)';c.fillRect(0,0,360,360);c.fillStyle='#ff3b3b';c.font='bold 28px Georgia';c.textAlign='center';c.fillText('Game over',180,160);c.textAlign='left'}
+  }
+  function tick(){
+    if(over)return draw();
+    dir=nd;const h={x:s[0].x+dir.x,y:s[0].y+dir.y};
+    if(h.x<0||h.y<0||h.x>=N||h.y>=N||s.some(p=>p.x===h.x&&p.y===h.y)){over=true;return draw()}
+    s.unshift(h);
+    if(h.x===food.x&&h.y===food.y){score++;$('sc').textContent=score;place()}else s.pop();
+    draw();
+  }
+  reset();draw();timers.push(setInterval(tick,110));
+}
+
+function ttt(){
+  $('stage').innerHTML='<p class="score" id="st">Your turn (X)</p><div class="ttt" id="bd"></div><button class="btn" id="rs" style="max-width:200px">New game</button>';
+  let b,done;
+  const L=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+  const win=p=>L.some(l=>l.every(i=>b[i]===p));
+  const render=()=>{$('bd').innerHTML='';b.forEach((v,i)=>{const e=document.createElement('button');e.textContent=v;e.onclick=()=>move(i);$('bd').appendChild(e)})};
+  function end(){if(win('X')){done=true;$('st').textContent='You win!'}else if(win('O')){done=true;$('st').textContent='The dog wins.'}else if(b.every(Boolean)){done=true;$('st').textContent='Draw.'}return done}
+  function move(i){
+    if(done||b[i])return;b[i]='X';render();if(end())return;
+    $('st').textContent='Dog is thinking…';
+    timers.push(setTimeout(()=>{
+      const free=b.map((v,k)=>v?null:k).filter(k=>k!==null);
+      const pick=p=>free.find(k=>{b[k]=p;const w=win(p);b[k]='';return w});
+      const k=pick('O')??pick('X')??(b[4]?null:4)??free[Math.floor(Math.random()*free.length)];
+      b[k??free[0]]='O';render();if(!end())$('st').textContent='Your turn (X)';
+    },450));
+  }
+  function reset(){b=Array(9).fill('');done=false;$('st').textContent='Your turn (X)';render()}
+  $('rs').onclick=reset;reset();
+}
+
+function whack(){
+  $('stage').innerHTML='<p class="score">Score: <b id="sc">0</b> · Time: <b id="tm">20</b>s</p><div class="holes" id="hl"></div><button class="btn" id="rs" style="max-width:200px">Start</button>';
+  let score=0,t=20,cur=-1,run=false;
+  const hs=[...Array(9)].map((_,i)=>{const e=document.createElement('button');e.onclick=()=>{if(run&&i===cur){score++;$('sc').textContent=score;cur=-1;paint()}};$('hl').appendChild(e);return e});
+  const paint=()=>hs.forEach((e,i)=>e.textContent=i===cur?'🐶':'');
+  $('rs').onclick=()=>{
+    stopAll();score=0;t=20;run=true;$('sc').textContent=0;$('tm').textContent=t;
+    timers.push(setInterval(()=>{cur=Math.floor(Math.random()*9);paint()},650));
+    timers.push(setInterval(()=>{t--;$('tm').textContent=t;if(t<=0){stopAll();run=false;cur=-1;paint();$('rs').textContent='Play again'}},1000));
+  };
+}
+</script>
+</body>
+</html>

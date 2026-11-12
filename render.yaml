@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: dogs
+    runtime: node
+    plan: starter            # persistent disks need a paid plan
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /healthz
+    disk:
+      name: dogs-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: DATA_FILE
+        value: /var/data/users.json
